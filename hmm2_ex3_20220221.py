@@ -9,6 +9,8 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 
+import pickle
+
 import numpyro
 from numpyro.contrib.control_flow import scan
 import numpyro.distributions as dist
@@ -102,6 +104,9 @@ def main(args):
     mcmc.run(rng_key, sequences, lengths, args=args)
     mcmc.print_summary()
     logger.info("\nMCMC elapsed time: {}".format(time.time() - start))
+    
+    with open("/home/ec2-user/quality_score/hmm2_ex3_mcmc.pickle", "wb") as f:
+        pickle.dump(mcmc, f)
 
 
 if __name__ == "__main__":
@@ -114,7 +119,7 @@ if __name__ == "__main__":
         type=str,
         help="one of: {}".format(", ".join(sorted(models.keys()))),
     )
-    parser.add_argument("-n", "--num-samples", nargs="?", default=100, type=int)
+    parser.add_argument("-n", "--num-samples", nargs="?", default=10, type=int)
     parser.add_argument("-d", "--hidden-dim", default=8, type=int)
     parser.add_argument("--kernel", default="nuts", type=str)
     parser.add_argument("--num-warmup", nargs="?", default=10, type=int)

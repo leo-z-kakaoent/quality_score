@@ -12,10 +12,8 @@ import pandas as pd
 import numpyro
 from numpyro.contrib.control_flow import scan
 import numpyro.distributions as dist
-from numpyro.examples.datasets import JSB_CHORALES, load_dataset
 from numpyro.handlers import mask
 from numpyro.infer import HMC, MCMC, NUTS
-from numpyro.ops.indexing import Vindex
 
 # try working or not with jasa dataset
 import awswrangler as wr
@@ -26,17 +24,11 @@ logger.setLevel(logging.INFO)
 def model_1(sequences, lengths, args, include_prior=True):
     num_sequences, max_length, data_dim = sequences.shape
     with mask(mask=include_prior):
-        probs_x = numpyro.sample(
-            "probs_x", dist.Dirichlet(0.9 * jnp.eye(args.hidden_dim) + 0.1).to_event(1)
-        )
-        probs_y_alpha = numpyro.sample(
-            "probs_y_alpha", dist.Exponential(0.1).expand([args.hidden_dim, data_dim]).to_event(2)
-        )
-        probs_y_beta = numpyro.sample(
-            "probs_y_beta", dist.Exponential(0.9).expand([args.hidden_dim, data_dim]).to_event(2)
-        )
+        probs_x = numpyro.sample("probs_x", dist.Dirichlet(0.9 * jnp.eye(args.hidden_dim) + 0.1).to_event(1))
+        probs_y = numpyro.sample("probs_y", )
         
-
+        
+        
     def transition_fn(carry, y):
         x_prev, t = carry
         with numpyro.plate("sequences", num_sequences, dim=-2):
@@ -47,7 +39,7 @@ def model_1(sequences, lengths, args, include_prior=True):
                     infer={"enumerate": "parallel"},
                 )
                 with numpyro.plate("tones", data_dim, dim=-1):
-                    numpyro.sample("y", dist.Beta(probs_y_alpha[x.squeeze(-1)],probs_y_beta[x.squeeze(-1)]), obs=y)
+                    numpyro.sample("y", dist.B(probs_y_alpha[x.squeeze(-1)],probs_y_beta[x.squeeze(-1)]), obs=y)
         return (x, t + 1), None
 
     x_init = jnp.zeros((num_sequences, 1), dtype=jnp.int32)

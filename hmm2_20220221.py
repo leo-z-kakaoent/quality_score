@@ -13,8 +13,6 @@ from numpyro.examples.datasets import JSB_CHORALES, load_dataset
 from numpyro.handlers import mask
 from numpyro.infer import HMC, MCMC, NUTS
 from numpyro.ops.indexing import Vindex
-import warnings
-warnings.filterwarnings("ignore")
 
 
 logger = logging.getLogger(__name__)
