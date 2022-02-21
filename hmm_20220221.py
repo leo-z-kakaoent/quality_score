@@ -71,3 +71,15 @@ def hmm(ys, hidden_dim):
     )
     log_prob = logsumexp(log_prob, axis=0, keepdims=True)
     numpyro.factor("forward_log_prob", log_prob)
+    
+num_warmup = 100
+num_samples = 1000
+num_chains = 1
+
+rng_key = random.PRNGKey(2)
+kernel = NUTS(hmm)
+mcmc = MCMC(kernel, num_warmup=num_warmup, num_samples=num_samples, num_chains=num_chains, progress_bar=True)
+
+mcmc.run(rng_key, episode_userrate.values, 100)
+
+
