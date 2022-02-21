@@ -69,17 +69,20 @@ def main(args):
 
     content_id = 2379
 
-    query = "SELECT user, episode FROM kakaowebtoon_kor_episode_read_v2021_11_22 WHERE content = %s" %str(content_id)
+    query = "SELECT DISTINCT user, episode FROM kakaowebtoon_kor_episode_read_v2021_11_22 WHERE content = %s" %str(content_id)
     df = wr.athena.read_sql_query(query, database="ds")
-    all_unique_users = len(df.drop_duplicates('user'))
-    def aggregate_fn(x):
-        return np.unique(x)
-    episode_userrate = df.groupby('episode').aggregate(lambda x: aggregate_fn(x))
-    sequences = jnp.asarray(episode_userrate.values.reshape(1,-1,1))
-    lengths = jnp.array(sequences.shape[1])
 
-    # sequences = jnp.asarray(np.random.random([1,120,1]))
-    # lengths = jnp.array(sequences.shape[1])
+    episodes = np.sort(df.episode.unique())
+
+    from tqdm import tqdm
+    rates = []
+    for i in tqdm(range(len(episodes)-1)):
+        a = df.loc[df.episode==episodes[i]].user.isin(df.loc[df.episode==episodes[i+1]].user)
+        rates.append(a.sum()/len(a))
+    churnrate = 1 - np.array(rates)
+        
+    sequences = jnp.asarray(churnrate.reshape(1,-1,1))
+    lengths = jnp.array(sequences.shape[1])
 
     logger.info("-" * 40)
     logger.info("Training {} on {} sequences".format(model.__name__, len(sequences)))
@@ -111,10 +114,10 @@ if __name__ == "__main__":
         type=str,
         help="one of: {}".format(", ".join(sorted(models.keys()))),
     )
-    parser.add_argument("-n", "--num-samples", nargs="?", default=10, type=int)
+    parser.add_argument("-n", "--num-samples", nargs="?", default=100, type=int)
     parser.add_argument("-d", "--hidden-dim", default=8, type=int)
     parser.add_argument("--kernel", default="nuts", type=str)
-    parser.add_argument("--num-warmup", nargs="?", default=5, type=int)
+    parser.add_argument("--num-warmup", nargs="?", default=10, type=int)
     parser.add_argument("--num-chains", nargs="?", default=1, type=int)
     parser.add_argument("--device", default="gpu", type=str, help='use "cpu" or "gpu".')
 
